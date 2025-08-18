@@ -37,7 +37,7 @@
         "details": {
           "type": "Microsoft.Cache/redis",
           "roleDefinitionIds": [
-            "/subscriptions/413f9374-8e04-4a96-987a-2df36a471516/providers/Microsoft.Authorization/policyDefinitions/648634a6-fbc1-45e8-8252-ffb74f2d1456"
+            "/providers/Microsoft.Authorization/roleDefinitions/e0f68234-74aa-48ed-b826-c38b57376e17"
           ],
           "deployment": {
             "properties": {
