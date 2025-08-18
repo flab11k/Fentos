@@ -1,2 +1,1 @@
-Editing policy definition failed
-Editing policy definition 'Resource logs in Event Hub should be Enabled (Enforcement)' in 'NG-SandBox-EastUS' failed. The existing policy parameter(s) 'requiredRetentionDays' type is being updated which is not allowed
+Creating policy assignment 'Only secure connections to your Azure Cache for Redis should be Enabled (Enforcement)' in 'NG-SandBox-EastUS' failed.Reason:The policy definition '648634a6-fbc1-45e8-8252-ffb74f2d1456' rule is invalid. The policy effect is missing the property 'details' or the property 'details' cannot be parsed.
