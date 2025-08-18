@@ -1,2 +1,5 @@
-Creating policy assignment failed
-Creating policy assignment 'Only secure connections to your Azure Cache for Redis should be Enabled (Enforcement)' in 'NG-SandBox-EastUS' failed.Reason:The policy assignment '5d3eee23a00c45dc84dc2eb1' request is invalid. Policy assignments must include a 'managed identity' when assigning 'DeployIfNotExists' policy definitions or policy definitions that contain a deployment in the effect details. Please see https://aka.ms/azurepolicyremediation for usage information.
+az policy assignment create \
+  --name "SecureRedis-Assignment" \
+  --scope "/subscriptions/413f9374-8e04-4a96-987a-2df36a471516/resourceGroups/NG-SandBox-EastUS" \
+  --policy "/subscriptions/413f9374-8e04-4a96-987a-2df36a471516/providers/Microsoft.Authorization/policyDefinitions/648634a6-fbc1-45e8-8252-ffb74f2d1456" \
+  --identity type=SystemAssigned
