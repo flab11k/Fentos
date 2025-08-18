@@ -1,0 +1,109 @@
+{
+  "properties": {
+    "displayName": "Resource logs in Event Hub should be Enabled (Enforcement)",
+    "policyType": "Custom",
+    "mode": "Indexed",
+    "description": "Ensure Event Hub namespaces have diagnostic logs enabled and retained for security auditing.",
+    "metadata": {
+      "version": "1.0.0",
+      "category": "Event Hub"
+    },
+    "parameters": {
+      "effect": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Effect",
+          "description": "Enable or disable the execution of the policy"
+        },
+        "allowedValues": [
+          "AuditIfNotExists",
+          "Deny",
+          "DeployIfNotExists",
+          "Disabled"
+        ],
+        "defaultValue": "DeployIfNotExists"
+      },
+      "requiredRetentionDays": {
+        "type": "Integer",
+        "defaultValue": 365,
+        "metadata": {
+          "displayName": "Required retention (days)",
+          "description": "The required number of days to retain diagnostic logs"
+        }
+      },
+      "eventHubNamespace": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Event Hub Namespace",
+          "description": "The Event Hub namespace where logs will be sent"
+        }
+      },
+      "eventHubName": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Event Hub Name",
+          "description": "The Event Hub instance where logs will be sent"
+        }
+      }
+    },
+    "policyRule": {
+      "if": {
+        "field": "type",
+        "equals": "Microsoft.EventHub/namespaces"
+      },
+      "then": {
+        "effect": "DeployIfNotExists",
+        "details": {
+          "type": "Microsoft.Insights/diagnosticSettings",
+          "existenceCondition": {
+            "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+            "equals": "true"
+          },
+          "roleDefinitionIds": [
+            "/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+          ],
+          "deployment": {
+            "properties": {
+              "mode": "incremental",
+              "template": {
+                "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                "contentVersion": "1.0.0.0",
+                "parameters": {
+                  "eventHubNamespace": { "type": "string" },
+                  "eventHubName": { "type": "string" },
+                  "requiredRetentionDays": { "type": "int" }
+                },
+                "resources": [
+                  {
+                    "type": "Microsoft.Insights/diagnosticSettings",
+                    "apiVersion": "2021-05-01-preview",
+                    "name": "[concat(parameters('eventHubNamespace'), '-diagnostic')]",
+                    "properties": {
+                      "eventHubAuthorizationRuleId": "[resourceId('Microsoft.EventHub/namespaces/authorizationRules', parameters('eventHubNamespace'), 'RootManageSharedAccessKey')]",
+                      "eventHubName": "[parameters('eventHubName')]",
+                      "logs": [
+                        {
+                          "category": "OperationalLogs",
+                          "enabled": true,
+                          "retentionPolicy": {
+                            "enabled": true,
+                            "days": "[parameters('requiredRetentionDays')]"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "parameters": {
+                "eventHubNamespace": { "value": "[parameters('eventHubNamespace')]" },
+                "eventHubName": { "value": "[parameters('eventHubName')]" },
+                "requiredRetentionDays": { "value": "[parameters('requiredRetentionDays')]" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
