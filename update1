@@ -33,6 +33,7 @@
       },
       "eventHubNamespace": {
         "type": "String",
+        "defaultValue": "default-namespace",
         "metadata": {
           "displayName": "Event Hub Namespace",
           "description": "The Event Hub namespace where logs will be sent"
@@ -40,6 +41,7 @@
       },
       "eventHubName": {
         "type": "String",
+        "defaultValue": "default-eventhub",
         "metadata": {
           "displayName": "Event Hub Name",
           "description": "The Event Hub instance where logs will be sent"
