@@ -1,2 +1,2 @@
 Editing policy definition failed
-Editing policy definition 'Resource logs in Event Hub should be Enabled (Enforcement)' in 'NG-SandBox-EastUS' failed. The policy contains new parameter(s) 'eventHubNamespace,eventHubName' which are not present in the existing policy and have no default value. New parameters may be added to a policy only if they have a default valu
+Editing policy definition 'Resource logs in Event Hub should be Enabled (Enforcement)' in 'NG-SandBox-EastUS' failed. The existing policy parameter(s) 'requiredRetentionDays' type is being updated which is not allowed
