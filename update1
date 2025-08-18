@@ -24,8 +24,8 @@
         "defaultValue": "DeployIfNotExists"
       },
       "requiredRetentionDays": {
-        "type": "Integer",
-        "defaultValue": 365,
+        "type": "String",
+        "defaultValue": "365",
         "metadata": {
           "displayName": "Required retention (days)",
           "description": "The required number of days to retain diagnostic logs"
@@ -73,7 +73,7 @@
                 "parameters": {
                   "eventHubNamespace": { "type": "string" },
                   "eventHubName": { "type": "string" },
-                  "requiredRetentionDays": { "type": "int" }
+                  "requiredRetentionDays": { "type": "string" }
                 },
                 "resources": [
                   {
@@ -89,7 +89,7 @@
                           "enabled": true,
                           "retentionPolicy": {
                             "enabled": true,
-                            "days": "[parameters('requiredRetentionDays')]"
+                            "days": "[int(parameters('requiredRetentionDays'))]"
                           }
                         }
                       ]
