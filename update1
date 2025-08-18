@@ -1,6 +1,6 @@
 {
   "properties": {
-    "displayName": "Resource logs in Event Hub should be Enabled (Enforcement)",
+    "displayName": "Resource logs in Event Hub should be Enabled (Enforcement) - New",
     "policyType": "Custom",
     "mode": "Indexed",
     "description": "Ensure Event Hub namespaces have diagnostic logs enabled and retained for security auditing.",
