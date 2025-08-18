@@ -3,32 +3,32 @@
     "displayName": "Resource logs in Event Hub should be Enabled (Enforcement)",
     "policyType": "Custom",
     "mode": "Indexed",
-    "description": "This policy ensures that diagnostic settings are enabled on Event Hub namespaces to send resource logs to an Event Hub.",
+    "description": "Ensure Event Hub namespaces have diagnostic logs enabled with required retention.",
     "metadata": {
-      "category": "Monitoring"
+      "version": "1.0.0",
+      "category": "Event Hub"
     },
     "parameters": {
-      "eventHubNamespace": {
+      "effect": {
         "type": "String",
         "metadata": {
-          "displayName": "Event Hub Namespace",
-          "description": "The name of the Event Hub Namespace where logs will be sent."
-        }
+          "displayName": "Effect",
+          "description": "Enable or disable the execution of the policy"
+        },
+        "allowedValues": [
+          "AuditIfNotExists",
+          "DeployIfNotExists",
+          "Disabled"
+        ],
+        "defaultValue": "DeployIfNotExists"
       },
-      "eventHubName": {
+      "requiredRetentionDays": {
         "type": "String",
         "metadata": {
-          "displayName": "Event Hub Name",
-          "description": "The name of the Event Hub inside the namespace."
-        }
-      },
-      "retentionDays": {
-        "type": "Integer",
-        "defaultValue": 30,
-        "metadata": {
-          "displayName": "Log Retention (days)",
-          "description": "Number of days to retain diagnostic logs."
-        }
+          "displayName": "Required retention (days)",
+          "description": "The required resource logs retention in days"
+        },
+        "defaultValue": "365"
       }
     },
     "policyRule": {
@@ -37,67 +37,62 @@
         "equals": "Microsoft.EventHub/namespaces"
       },
       "then": {
-        "effect": "DeployIfNotExists",
+        "effect": "[parameters('effect')]",
         "details": {
           "type": "Microsoft.Insights/diagnosticSettings",
           "existenceCondition": {
-            "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
-            "equals": "true"
-          },
-          "roleDefinitionIds": [
-            "/providers/Microsoft.Authorization/roleDefinitions/749f88d5-cbae-40b8-bcfc-e573ddc772fa"
-          ],
-          "deployment": {
-            "properties": {
-              "mode": "incremental",
-              "template": {
-                "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                "contentVersion": "1.0.0.0",
-                "parameters": {
-                  "eventHubNamespace": {
-                    "type": "string"
-                  },
-                  "eventHubName": {
-                    "type": "string"
-                  },
-                  "retentionDays": {
-                    "type": "int"
-                  }
-                },
-                "resources": [
+            "count": {
+              "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+              "where": {
+                "anyOf": [
                   {
-                    "type": "Microsoft.Insights/diagnosticSettings",
-                    "apiVersion": "2021-05-01-preview",
-                    "name": "[concat(parameters('eventHubNamespace'), '-diagnosticSetting')]",
-                    "properties": {
-                      "eventHubAuthorizationRuleId": "[resourceId('Microsoft.EventHub/namespaces/authorizationRules', parameters('eventHubNamespace'), 'RootManageSharedAccessKey')]",
-                      "eventHubName": "[parameters('eventHubName')]",
-                      "logs": [
-                        {
-                          "category": "OperationalLogs",
-                          "enabled": true,
-                          "retentionPolicy": {
-                            "enabled": true,
-                            "days": "[parameters('retentionDays')]"
+                    "allOf": [
+                      {
+                        "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.enabled",
+                        "equals": "true"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.days",
+                            "equals": "0"
+                          },
+                          {
+                            "value": "[padLeft(current('Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.days'), 3, '0')]",
+                            "greaterOrEquals": "[padLeft(parameters('requiredRetentionDays'), 3, '0')]"
                           }
-                        }
-                      ]
-                    }
+                        ]
+                      },
+                      {
+                        "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
+                        "equals": "true"
+                      }
+                    ]
+                  },
+                  {
+                    "allOf": [
+                      {
+                        "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
+                        "equals": "true"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.enabled",
+                            "notEquals": "true"
+                          },
+                          {
+                            "field": "Microsoft.Insights/diagnosticSettings/storageAccountId",
+                            "exists": false
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
-              },
-              "parameters": {
-                "eventHubNamespace": {
-                  "value": "[parameters('eventHubNamespace')]"
-                },
-                "eventHubName": {
-                  "value": "[parameters('eventHubName')]"
-                },
-                "retentionDays": {
-                  "value": "[parameters('retentionDays')]"
-                }
               }
-            }
+            },
+            "greaterOrEquals": 1
           }
         }
       }
