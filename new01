@@ -30,7 +30,7 @@
       }
     },
     "requiredRetentionDays": {
-      "type": "Int",
+      "type": "Integer",
       "metadata": {
         "displayName": "Retention (days)",
         "description": "Number of days to retain AKS diagnostic logs"
