@@ -28,7 +28,7 @@
                     "apiVersion": "2021-05-01-preview",
                     "name": "[concat('diag-', field('name'))]",
                     "properties": {
-                      "workspaceId": "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/DefaultRG/providers/Microsoft.OperationalInsights/workspaces/DefaultWorkspace",
+                      "workspaceId": "/subscriptions/413f9374-8e04-4a96-987a-2df36a471516/resourceGroups/DefaultRG/providers/Microsoft.OperationalInsights/workspaces/DefaultWorkspace",
                       "logs": [
                         {
                           "category": "kube-audit",
