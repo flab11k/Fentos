@@ -3,16 +3,11 @@
     "displayName": "Resource logs in Azure Kubernetes Service should be Enabled (Enforcement)",
     "policyType": "Custom",
     "mode": "Indexed",
-    "description": "Azure Kubernetes Service's resource logs can help recreate activity trails when investigating security incidents. Deny it to make sure the logs will not exist when needed",
+    "description": "Ensure AKS clusters have diagnostic logs enabled with retention policy.",
     "metadata": {
       "version": "1.0.0",
-      "category": "Kubernetes",
-      "createdBy": "c55a0413-6277-4136-8724-521d54356ad7",
-      "createdOn": "2025-08-08T18:08:29.7358162Z",
-      "updatedBy": "c55a0413-6277-4136-8724-521d54356ad7",
-      "updatedOn": "2025-08-19T18:16:31.5397013Z"
+      "category": "Kubernetes"
     },
-    "version": "1.0.0",
     "parameters": {
       "effect": {
         "type": "String",
@@ -28,12 +23,19 @@
         "defaultValue": "DeployIfNotExists"
       },
       "requiredRetentionDays": {
-        "type": "String",
+        "type": "Integer",
         "metadata": {
           "displayName": "Required retention (days)",
           "description": "The required resource logs retention (in days)"
         },
-        "defaultValue": "365"
+        "defaultValue": 365
+      },
+      "storageAccountId": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Storage Account Resource ID",
+          "description": "The storage account where diagnostics will be sent"
+        }
       }
     },
     "policyRule": {
@@ -46,75 +48,48 @@
         "details": {
           "type": "Microsoft.Insights/diagnosticSettings",
           "existenceCondition": {
-            "count": {
-              "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
-              "where": {
-                "anyOf": [
+            "allOf": [
+              {
+                "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
+                "equals": "true"
+              },
+              {
+                "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.days",
+                "greaterOrEquals": "[parameters('requiredRetentionDays')]"
+              }
+            ]
+          },
+          "deployment": {
+            "properties": {
+              "mode": "incremental",
+              "template": {
+                "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                "contentVersion": "1.0.0.0",
+                "resources": [
                   {
-                    "allOf": [
-                      {
-                        "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.enabled",
-                        "equals": "true"
-                      },
-                      {
-                        "anyOf": [
-                          {
-                            "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.days",
-                            "equals": "0"
-                          },
-                          {
-                            "value": "[padLeft(current('Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.days'), 3, '0')]",
-                            "greaterOrEquals": "[padLeft(parameters('requiredRetentionDays'), 3, '0')]"
+                    "type": "Microsoft.Insights/diagnosticSettings",
+                    "apiVersion": "2021-05-01-preview",
+                    "name": "set-diagnostics",
+                    "properties": {
+                      "storageAccountId": "[parameters('storageAccountId')]",
+                      "logs": [
+                        {
+                          "category": "kube-audit",
+                          "enabled": true,
+                          "retentionPolicy": {
+                            "enabled": true,
+                            "days": "[parameters('requiredRetentionDays')]"
                           }
-                        ]
-                      },
-                      {
-                        "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
-                        "equals": "true"
-                      }
-                    ]
-                  },
-                  {
-                    "allOf": [
-                      {
-                        "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
-                        "equals": "true"
-                      },
-                      {
-                        "anyOf": [
-                          {
-                            "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.enabled",
-                            "notEquals": "true"
-                          },
-                          {
-                            "field": "Microsoft.Insights/diagnosticSettings/storageAccountId",
-                            "exists": false
-                          }
-                        ]
-                      }
-                    ]
+                        }
+                      ]
+                    }
                   }
                 ]
               }
-            },
-            "greaterOrEquals": 1
+            }
           }
         }
       }
-    },
-    "versions": [
-      "1.0.0"
-    ]
-  },
-  "id": "/subscriptions/413f9374-8e04-4a96-987a-2df36a471516/providers/Microsoft.Authorization/policyDefinitions/8bf2710e-52bd-4bd5-af52-07e8dc4ec44c",
-  "type": "Microsoft.Authorization/policyDefinitions",
-  "name": "8bf2710e-52bd-4bd5-af52-07e8dc4ec44c",
-  "systemData": {
-    "createdBy": "fonah@cotality.com",
-    "createdByType": "User",
-    "createdAt": "2025-08-08T18:08:29.7075276Z",
-    "lastModifiedBy": "fonah@cotality.com",
-    "lastModifiedByType": "User",
-    "lastModifiedAt": "2025-08-19T18:16:31.5261789Z"
+    }
   }
 }
