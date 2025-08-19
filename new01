@@ -1,71 +1,122 @@
 {
-  "properties": {
-    "displayName": "Enable diagnostic settings for AKS clusters (Enforcement)",
-    "policyType": "Custom",
-    "mode": "Indexed",
-    "description": "Ensures AKS clusters have diagnostic settings enabled with hardcoded workspace and retention.",
-    "parameters": {
-      "effect": {
-        "type": "String",
-        "metadata": {
-          "displayName": "Effect",
-          "description": "Enable or disable the execution of the policy"
-        },
-        "allowedValues": [
-          "AuditIfNotExists",
-          "DeployIfNotExists",
-          "Disabled"
-        ],
-        "defaultValue": "DeployIfNotExists"
+  "$schema": "https://schema.management.azure.com/schemas/2019-09-01/policyDefinition.json#",
+  "contentVersion": "1.0.0.0",
+  "displayName": "Enable AKS resource logs with retention",
+  "description": "Deploy diagnostic settings on AKS clusters to a Log Analytics workspace with required retention.",
+  "metadata": {
+    "version": "1.0.0",
+    "category": "Kubernetes"
+  },
+  "mode": "Indexed",
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Effect",
+        "description": "Enable or disable the policy"
       },
-      "requiredRetentionDays": {
-        "type": "String",
-        "metadata": {
-          "displayName": "Required retention (days)",
-          "description": "The required resource logs retention (in days)"
-        },
-        "defaultValue": "365"
+      "allowedValues": [
+        "AuditIfNotExists",
+        "DeployIfNotExists",
+        "Disabled"
+      ],
+      "defaultValue": "DeployIfNotExists"
+    },
+    "logAnalyticsWorkspaceId": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Log Analytics Workspace Resource ID",
+        "description": "Resource ID of the workspace where AKS logs will be sent"
       }
     },
-    "policyRule": {
-      "if": {
-        "field": "type",
-        "equals": "Microsoft.ContainerService/managedClusters"
+    "requiredRetentionDays": {
+      "type": "Int",
+      "metadata": {
+        "displayName": "Retention (days)",
+        "description": "Number of days to retain AKS diagnostic logs"
       },
-      "then": {
-        "effect": "[parameters('effect')]",
-        "details": {
-          "type": "Microsoft.Insights/diagnosticSettings",
-          "roleDefinitionIds": [
-            "/providers/microsoft.authorization/roleDefinitions/4633458b-17de-408a-b874-0445c86b69e6"
-          ],
-          "deployment": {
-            "properties": {
-              "mode": "incremental",
-              "template": {
-                "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                "contentVersion": "1.0.0.0",
-                "resources": [
-                  {
-                    "type": "Microsoft.Insights/diagnosticSettings",
-                    "apiVersion": "2021-05-01-preview",
-                    "name": "[concat('diag-', field('name'))]",
-                    "properties": {
-                      "workspaceId": "/subscriptions/413f9374-8e04-4a96-987a-2df36a471516/resourceGroups/DefaultRG/providers/Microsoft.OperationalInsights/workspaces/DefaultWorkspace",
-                      "logs": [
-                        {
-                          "category": "kube-audit",
-                          "enabled": true,
-                          "retentionPolicy": {
-                            "enabled": true,
-                            "days": 365
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
+      "defaultValue": 365
+    }
+  },
+  "policyRule": {
+    "if": {
+      "field": "type",
+      "equals": "Microsoft.ContainerService/managedClusters"
+    },
+    "then": {
+      "effect": "[parameters('effect')]",
+      "details": {
+        "type": "Microsoft.ContainerService/managedClusters/providers/diagnosticSettings",
+        "roleDefinitionIds": [
+          "/providers/Microsoft.Authorization/roleDefinitions/e1a9b9f7-9cb2-4cb6-b145-9e0f7f665ae8"
+        ],
+        "existenceCondition": {
+          "allOf": [
+            {
+              "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+              "equals": "true"
+            },
+            {
+              "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.enabled",
+              "equals": "true"
+            },
+            {
+              "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.days",
+              "greaterOrEquals": "[parameters('requiredRetentionDays')]"
+            }
+          ]
+        },
+        "deployment": {
+          "properties": {
+            "mode": "incremental",
+            "parameters": {
+              "clusterName": {
+                "value": "[field('name')]"
+              },
+              "logAnalyticsWorkspaceId": {
+                "value": "[parameters('logAnalyticsWorkspaceId')]"
+              },
+              "requiredRetentionDays": {
+                "value": "[parameters('requiredRetentionDays')]"
               }
+            },
+            "template": {
+              "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+              "contentVersion": "1.0.0.0",
+              "parameters": {
+                "clusterName": { "type": "string" },
+                "logAnalyticsWorkspaceId": { "type": "string" },
+                "requiredRetentionDays": { "type": "int" }
+              },
+              "resources": [
+                {
+                  "type": "Microsoft.ContainerService/managedClusters/providers/diagnosticSettings",
+                  "apiVersion": "2017-05-01-preview",
+                  "name": "[concat(parameters('clusterName'), '/setDiagnostics')]",
+                  "properties": {
+                    "workspaceId": "[parameters('logAnalyticsWorkspaceId')]",
+                    "logs": [
+                      {
+                        "category": "kube-apiserver",
+                        "enabled": true,
+                        "retentionPolicy": {
+                          "enabled": true,
+                          "days": "[parameters('requiredRetentionDays')]"
+                        }
+                      },
+                      {
+                        "category": "kube-controller-manager",
+                        "enabled": true,
+                        "retentionPolicy": {
+                          "enabled": true,
+                          "days": "[parameters('requiredRetentionDays')]"
+                        }
+                      }
+                      
+                    ]
+                  }
+                }
+              ]
             }
           }
         }
