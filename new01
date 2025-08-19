@@ -1,130 +1,62 @@
 {
-  "mode": "Indexed",
-  "policyRule": {
-    "if": {
-      "field": "type",
-      "equals": "Microsoft.KeyVault/managedHSMs"
+  "properties": {
+    "displayName": "Resource logs in Azure Kubernetes Service (AKS) should be enabled (Enforcement)",
+    "policyType": "Custom",
+    "mode": "Indexed",
+    "description": "Enforces that diagnostic settings are enabled on AKS clusters and logs are sent to Log Analytics with required retention.",
+    "metadata": {
+      "category": "Monitoring",
+      "version": "1.0.0"
     },
-    "then": {
-      "effect": "[parameters('effect')]",
-      "details": {
-        "type": "Microsoft.Insights/diagnosticSettings",
-        "existenceCondition": {
-          "count": {
-            "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
-            "where": {
-              "anyOf": [
-                {
-                  "allOf": [
-                    {
-                      "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.enabled",
-                      "equals": "true"
-                    },
-                    {
-                      "anyOf": [
-                        {
-                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.days",
-                          "equals": "0"
-                        },
-                        {
-                          "value": "[padLeft(current('Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.days'), 3, '0')]",
-                          "greaterOrEquals": "[padLeft(parameters('requiredRetentionDays'), 3, '0')]"
-                        }
-                      ]
-                    },
-                    {
-                      "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
-                      "equals": "true"
-                    }
-                  ]
-                },
-                {
-                  "allOf": [
-                    {
-                      "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
-                      "equals": "true"
-                    },
-                    {
-                      "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.enabled",
-                      "notEquals": "true"
-                    }
-                  ]
-                }
-              ]
-            }
-          },
-          "greaterOrEquals": 1
-        },
-        "roleDefinitionIds": [
-          "/providers/microsoft.authorization/roleDefinitions/4633458b-17de-408a-b874-0445c86b69e6"  
+    "parameters": {
+      "effect": {
+        "type": "String",
+        "allowedValues": [
+          "AuditIfNotExists",
+          "DeployIfNotExists",
+          "Disabled"
         ],
-        "deployment": {
-          "properties": {
-            "mode": "incremental",
-            "template": {
-              "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-              "contentVersion": "1.0.0.0",
-              "resources": [
-                {
-                  "type": "Microsoft.Insights/diagnosticSettings",
-                  "apiVersion": "2021-05-01-preview",
-                  "name": "[concat('set-diag-', parameters('eventHubName'))]",
-                  "properties": {
-                    "eventHubAuthorizationRuleId": "[resourceId('Microsoft.EventHub/namespaces/authorizationRules', parameters('eventHubNamespace'), 'RootManageSharedAccessKey')]",
-                    "eventHubName": "[parameters('eventHubName')]",
-                    "logs": [
-                      {
-                        "category": "AuditEvent",
-                        "enabled": true,
-                        "retentionPolicy": {
-                          "enabled": true,
-                          "days": "[parameters('requiredRetentionDays')]"
-                        }
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          }
+        "defaultValue": "DeployIfNotExists",
+        "metadata": {
+          "displayName": "Effect",
+          "description": "Enable or disable the execution of the policy"
+        }
+      },
+      "requiredRetentionDays": {
+        "type": "String",
+        "defaultValue": "365",
+        "metadata": {
+          "displayName": "Required Retention (in days)",
+          "description": "The minimum number of days for which logs should be retained"
         }
       }
-    }
-  },
-  "parameters": {
-    "effect": {
-      "type": "String",
-      "metadata": {
-        "displayName": "Effect",
-        "description": "Enable or disable execution of the policy"
+    },
+    "policyRule": {
+      "if": {
+        "field": "type",
+        "equals": "Microsoft.ContainerService/managedClusters"
       },
-      "allowedValues": [
-        "AuditIfNotExists",
-        "DeployIfNotExists",
-        "Disabled"
-      ],
-      "defaultValue": "DeployIfNotExists"
-    },
-    "requiredRetentionDays": {
-      "type": "String",
-      "metadata": {
-        "displayName": "Required retention (days)",
-        "description": "Number of days for log retention"
-      },
-      "defaultValue": "365"
-    },
-    "eventHubName": {
-      "type": "String",
-      "metadata": {
-        "displayName": "Event Hub name",
-        "description": "The Event Hub to stream logs to"
-      }
-    },
-    "eventHubNamespace": {
-      "type": "String",
-      "metadata": {
-        "displayName": "Event Hub namespace",
-        "description": "The namespace of the Event Hub"
+      "then": {
+        "effect": "[parameters('effect')]",
+        "details": {
+          "type": "Microsoft.Insights/diagnosticSettings",
+          "existenceCondition": {
+            "allOf": [
+              {
+                "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.enabled",
+                "equals": "true"
+              },
+              {
+                "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.days",
+                "greaterOrEquals": "[parameters('requiredRetentionDays')]"
+              },
+              {
+                "field": "Microsoft.Insights/diagnosticSettings/workspaceId",
+                "exists": "true"
+              }
+            ]
+          }
+        }
       }
     }
   }
