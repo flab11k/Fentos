@@ -3,7 +3,7 @@
     "displayName": "Enable diagnostic settings for AKS clusters (Enforcement)",
     "policyType": "Custom",
     "mode": "Indexed",
-    "description": "Ensures that AKS clusters have diagnostic settings enabled and logs are sent to a Log Analytics workspace with the required retention period.",
+    "description": "Ensures AKS clusters have diagnostic settings enabled and logs are sent to a Log Analytics workspace with required retention.",
     "metadata": {
       "category": "Monitoring",
       "version": "1.0.0"
@@ -23,8 +23,8 @@
         }
       },
       "requiredRetentionDays": {
-        "type": "Int",
-        "defaultValue": 365,
+        "type": "String",
+        "defaultValue": "365",
         "metadata": {
           "displayName": "Required Retention (days)",
           "description": "The number of days logs should be retained"
@@ -69,7 +69,7 @@
                           "enabled": true,
                           "retentionPolicy": {
                             "enabled": true,
-                            "days": "[parameters('requiredRetentionDays')]"
+                            "days": "[int(parameters('requiredRetentionDays'))]"
                           }
                         },
                         {
@@ -77,7 +77,7 @@
                           "enabled": true,
                           "retentionPolicy": {
                             "enabled": true,
-                            "days": "[parameters('requiredRetentionDays')]"
+                            "days": "[int(parameters('requiredRetentionDays'))]"
                           }
                         },
                         {
@@ -85,7 +85,7 @@
                           "enabled": true,
                           "retentionPolicy": {
                             "enabled": true,
-                            "days": "[parameters('requiredRetentionDays')]"
+                            "days": "[int(parameters('requiredRetentionDays'))]"
                           }
                         }
                       ]
