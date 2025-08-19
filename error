@@ -1,1 +1,1 @@
-The policy definition '8bf2710e-52bd-4bd5-af52-07e8dc4ec44c' rule is invalid. The policy effect 'details' field must contain a valid deployment definition.
+The policy '8bf2710e-52bd-4bd5-af52-07e8dc4ec44c' has parameter(s) 'requiredRetentionDays' with invalid types. The allowed parameter definition types are 'String,Array,Object,Boolean,Integer,Float,DateTime'.
