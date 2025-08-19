@@ -4,13 +4,36 @@
     "policyType": "Custom",
     "mode": "Indexed",
     "description": "Ensures AKS clusters have diagnostic settings enabled with hardcoded workspace and retention.",
+    "parameters": {
+      "effect": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Effect",
+          "description": "Enable or disable the execution of the policy"
+        },
+        "allowedValues": [
+          "AuditIfNotExists",
+          "DeployIfNotExists",
+          "Disabled"
+        ],
+        "defaultValue": "DeployIfNotExists"
+      },
+      "requiredRetentionDays": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Required retention (days)",
+          "description": "The required resource logs retention (in days)"
+        },
+        "defaultValue": "365"
+      }
+    },
     "policyRule": {
       "if": {
         "field": "type",
         "equals": "Microsoft.ContainerService/managedClusters"
       },
       "then": {
-        "effect": "DeployIfNotExists",
+        "effect": "[parameters('effect')]",
         "details": {
           "type": "Microsoft.Insights/diagnosticSettings",
           "roleDefinitionIds": [
