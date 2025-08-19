@@ -1,105 +1,114 @@
 {
-  "properties": {
-    "displayName": "Resource logs in Azure Key Vault Managed HSM should be Enabled (Enforcement)",
-    "policyType": "Custom",
-    "mode": "Indexed",
-    "description": "Ensure resource logs are enabled for Managed HSMs with proper retention.",
-    "metadata": {
-      "version": "1.1.0",
-      "category": "Key Vault"
+  "mode": "Indexed",
+  "policyRule": {
+    "if": {
+      "allOf": [
+        {
+          "field": "type",
+          "equals": "Microsoft.KeyVault/managedHSMs"
+        }
+      ]
     },
-    "parameters": {
-      "effect": {
-        "type": "String",
-        "metadata": {
-          "displayName": "Effect",
-          "description": "Enable or disable the execution of the policy"
-        },
-        "allowedValues": [
-          "AuditIfNotExists",
-          "DeployIfNotExists",
-          "Disabled"
-        ],
-        "defaultValue": "DeployIfNotExists"
-      },
-      "requiredRetentionDays": {
-        "type": "String",
-        "metadata": {
-          "displayName": "Required retention (days)",
-          "description": "The required resource logs retention in days"
-        },
-        "defaultValue": "365"
-      },
-      "eventHubName": {
-        "type": "String",
-        "metadata": {
-          "displayName": "Event Hub Name",
-          "description": "Event Hub name for diagnostic settings"
-        },
-        "defaultValue": "hsm-logs"
-      },
-      "eventHubNamespace": {
-        "type": "String",
-        "metadata": {
-          "displayName": "Event Hub Namespace",
-          "description": "Event Hub namespace for diagnostic settings"
-        },
-        "defaultValue": "hsm-namespace"
-      }
-    },
-    "policyRule": {
-      "if": {
-        "field": "type",
-        "equals": "Microsoft.KeyVault/managedHsms"
-      },
-      "then": {
-        "effect": "[parameters('effect')]",
-        "details": {
-          "type": "Microsoft.Insights/diagnosticSettings",
-          "existenceCondition": {
-            "count": {
-              "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
-              "where": {
-                "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
-                "equals": "true"
-              }
+    "then": {
+      "effect": "[parameters('effect')]",
+      "details": {
+        "type": "Microsoft.Insights/diagnosticSettings",
+        "name": "set-diagnostics",
+        "existenceCondition": {
+          "allOf": [
+            {
+              "field": "Microsoft.Insights/diagnosticSettings/logs.enabled",
+              "equals": "true"
             },
-            "greaterOrEquals": 1
-          },
-          "roleDefinitionIds": [
-            "/providers/microsoft.authorization/roleDefinitions/fd9d4d60-3ec2-4201-a3de-4d75b32e1c6a"  
-          ],
-          "deployment": {
-            "properties": {
-              "mode": "incremental",
-              "template": {
-                "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                "contentVersion": "1.0.0.0",
-                "resources": [
-                  {
-                    "type": "Microsoft.Insights/diagnosticSettings",
-                    "apiVersion": "2021-05-01-preview",
-                    "name": "set-hsm-logs",
-                    "properties": {
-                      "eventHubName": "[parameters('eventHubName')]",
-                      "eventHubAuthorizationRuleId": "[resourceId('Microsoft.EventHub/namespaces/AuthorizationRules', parameters('eventHubNamespace'), 'RootManageSharedAccessKey')]",
-                      "logs": [
-                        {
-                          "category": "AuditEvent",
+            {
+              "anyOf": [
+                {
+                  "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.enabled",
+                  "equals": "true"
+                },
+                {
+                  "field": "Microsoft.Insights/diagnosticSettings/logs[*].retentionPolicy.days",
+                  "greaterOrEquals": "[parameters('requiredRetentionDays')]"
+                }
+              ]
+            },
+            {
+              "field": "Microsoft.Insights/diagnosticSettings/eventHubName",
+              "equals": "[parameters('eventHubName')]"
+            },
+            {
+              "field": "Microsoft.Insights/diagnosticSettings/eventHubAuthorizationRuleId",
+              "like": "[concat('*', parameters('eventHubNamespace'), '*')]"
+            }
+          ]
+        },
+        "deployment": {
+          "properties": {
+            "mode": "incremental",
+            "template": {
+              "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+              "contentVersion": "1.0.0.0",
+              "resources": [
+                {
+                  "type": "Microsoft.Insights/diagnosticSettings",
+                  "apiVersion": "2021-05-01-preview",
+                  "name": "set-diagnostics",
+                  "properties": {
+                    "logs": [
+                      {
+                        "category": "AuditEvent",
+                        "enabled": true,
+                        "retentionPolicy": {
                           "enabled": true,
-                          "retentionPolicy": {
-                            "enabled": true,
-                            "days": "[int(parameters('requiredRetentionDays'))]"
-                          }
+                          "days": "[parameters('requiredRetentionDays')]"
                         }
-                      ]
-                    }
+                      }
+                    ],
+                    "eventHubName": "[parameters('eventHubName')]",
+                    "eventHubAuthorizationRuleId": "[parameters('eventHubNamespace')]"
                   }
-                ]
-              }
+                }
+              ]
             }
           }
         }
+      }
+    }
+  },
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Effect",
+        "description": "Enable or disable the execution of the policy"
+      },
+      "allowedValues": [
+        "AuditIfNotExists",
+        "DeployIfNotExists",
+        "Disabled"
+      ],
+      "defaultValue": "DeployIfNotExists"
+    },
+    "requiredRetentionDays": {
+      "type": "Integer",
+      "metadata": {
+        "displayName": "Required retention (days)",
+        "description": "The required resource logs retention (in days)"
+      },
+      "defaultValue": 365
+    },
+    "eventHubName": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Event Hub Name",
+        "description": "The Event Hub name to which diagnostics should be sent"
+      }
+    },
+    "eventHubNamespace": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Event Hub Namespace Authorization Rule ID",
+        "description": "The full resource ID of the Event Hub Namespace authorization rule"
       }
     }
   }
